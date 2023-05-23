@@ -1,0 +1,165 @@
+import React, { useState, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
+const News = () => {
+  const [articles, setArticles] = useState([]);
+  const [keyword, setKeyword] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [category, setCategory] = useState('');
+  const [source, setSource] = useState('');
+  const [sources, setSources] = useState([]);
+
+  const fetchSources = async () => {
+    try {
+      const apiKey = '021e7aa20e57481ea561b4a5e8dc24b9';
+      const response = await fetch(`https://newsapi.org/v2/sources?apiKey=${apiKey}`);
+      const data = await response.json();
+      setSources(data.sources);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchArticles = async () => {
+    try {
+      const apiKey = '021e7aa20e57481ea561b4a5e8dc24b9';
+      let url = `https://newsapi.org/v2/everything?apiKey=${apiKey}`;
+
+      if (keyword) {
+        url += `&q=${encodeURIComponent(keyword)}`;
+      }
+
+      if (category) {
+        url += `&category=${encodeURIComponent(category)}`;
+      }
+
+      if (source) {
+        url += `&sources=${encodeURIComponent(source)}`;
+      }
+
+      if (date) {
+        const formattedDate = date.toISOString().split('T')[0];
+        url += `&from=${formattedDate}&to=${formattedDate}`;
+      }
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        setArticles(data.articles);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchSources();
+  }, []);
+
+  useEffect(() => {
+    fetchArticles();
+  }, [keyword, date, category, source]);
+
+  const handleSearch = () => {
+    fetchArticles();
+  };
+
+  return (
+    <div>
+      <h2>News Articles</h2>
+      <div className="row">
+        <div className="col-lg-6">
+          <div className="form-group">
+            <label>Keyword:</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Enter keyword"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="col-lg-6">
+          <div className="form-group">
+            <label>Date:</label>
+            <DatePicker
+              className="form-control"
+              selected={date}
+              onChange={(date) => setDate(date)}
+              placeholderText="Select date"
+              dateFormat="yyyy-MM-dd"
+            />
+          </div>
+        </div>
+        <div className="col-lg-6">
+          <div className="form-group">
+            <label>Category:</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Enter category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="col-lg-6">
+          <div className="form-group">
+            <label>Source:</label>
+            <select
+              className="form-control"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+            >
+              <option value="">All Sources</option>
+              {sources.map((src) => (
+                <option value={src.id} key={src.id}>
+                  {src.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="col-12">
+          <button className="btn btn-primary" type="button" onClick={handleSearch}>
+            Search
+          </button>
+        </div>
+      </div>
+
+      <div className="row">
+        {articles &&
+          articles.map((article, index) => {
+            const description = article.description.replace(/<\/?ol[^>]*>|<\/?li[^>]*>/g, '');
+
+            return (
+              <div className="col-md-4" key={index}>
+                <div className="card mb-4">
+                  <img
+                    src={article.urlToImage}
+                    className="card-img-top img-fluid"
+                    alt={article.title}
+                    style={{ height: '200px', objectFit: 'cover' }}
+                  />
+                  <div className="card-body d-flex flex-column">
+                    <h5 className="card-title text-truncate">{article.title}</h5>
+                    <p className="card-text flex-grow-1">{description}</p>
+                    <p>Date: {article.publishedAt.substring(0, 10)}</p>
+                    <p>Category: {category}</p>
+                    <p>Source: {article.source.name}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+    </div>
+  );
+};
+
+export default News;
